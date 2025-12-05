@@ -32,7 +32,9 @@ node_modules
 postman/
 plans/
 
-# *.env
+ .env
+*.bak
+
 
 logs
 

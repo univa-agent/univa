@@ -2,6 +2,8 @@ import asyncio
 import uuid
 import os
 from typing import Dict, Optional, AsyncGenerator, Any
+from pathlib import Path
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -12,6 +14,15 @@ import logging
 from datetime import datetime
 import traceback
 import re
+
+def _init_env():
+    base = Path(__file__).resolve().parents[1]
+    env_file = base / ".env"
+    if not env_file.exists():
+        raise RuntimeError("Config missing: please copy univa/.env.example to univa/.env and fill your keys.")
+    load_dotenv(dotenv_path=str(env_file), override=False)
+
+_init_env()
 
 from univa.univa_agent import PlanActSystem
 

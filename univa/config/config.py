@@ -1,6 +1,7 @@
 import os
 import sys
 import toml
+import json
 
 def get_default_config():
     """Get default configuration"""
@@ -23,12 +24,18 @@ def get_default_config():
         "mcp_tools_path": os.path.join(project_root, "univa"),  # Default UniVideo path
         
         # Model configuration for Plan Agent
+        "plan_model_provider": "openai",
         "plan_model_id": "gpt-5-2025-08-07",
-        "plan_model_api_key": "",  # Set your Claude API key here
+        "plan_model_api_key": "",
+        "plan_model_base_url": "",
+        "plan_model_extra_params": "",
         
         # Model configuration for Act Agent
+        "act_model_provider": "openai",
         "act_model_id": "gpt-5-2025-08-07",
-        "act_model_api_key": "",  # Set your OpenAI API key here
+        "act_model_api_key": "",
+        "act_model_base_url": "",
+        "act_model_extra_params": "",
         
         # Other settings
         "proxy_host": "",
@@ -72,6 +79,44 @@ def load_config():
     if PROXY_HOST and PROXY_PORT:
         os.environ["http_proxy"] = f"http://{PROXY_HOST}:{PROXY_PORT}"
         os.environ["https_proxy"] = f"http://{PROXY_HOST}:{PROXY_PORT}"
+
+    # Load model configuration from .env if present (project root .env)
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        univa_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        env_candidates = [
+            os.path.join(univa_root, ".env"),
+            os.path.join(project_root, ".env"),
+        ]
+        env_path = next((p for p in env_candidates if os.path.exists(p)), None)
+        if env_path:
+            env_vars = {}
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        env_vars[k.strip()] = v.strip().strip('"').strip("'")
+
+            # Plan model
+            config["plan_model_provider"] = env_vars.get("PLAN_MODEL_PROVIDER", config.get("plan_model_provider"))
+            config["plan_model_id"] = env_vars.get("PLAN_MODEL_ID", config.get("plan_model_id"))
+            config["plan_model_api_key"] = env_vars.get("PLAN_MODEL_API_KEY", config.get("plan_model_api_key"))
+            config["plan_model_base_url"] = env_vars.get("PLAN_MODEL_BASE_URL", config.get("plan_model_base_url"))
+            plan_extra = env_vars.get("PLAN_MODEL_EXTRA_PARAMS", config.get("plan_model_extra_params", ""))
+            config["plan_model_extra_params"] = plan_extra
+
+            # Act model
+            config["act_model_provider"] = env_vars.get("ACT_MODEL_PROVIDER", config.get("act_model_provider"))
+            config["act_model_id"] = env_vars.get("ACT_MODEL_ID", config.get("act_model_id"))
+            config["act_model_api_key"] = env_vars.get("ACT_MODEL_API_KEY", config.get("act_model_api_key"))
+            config["act_model_base_url"] = env_vars.get("ACT_MODEL_BASE_URL", config.get("act_model_base_url"))
+            act_extra = env_vars.get("ACT_MODEL_EXTRA_PARAMS", config.get("act_model_extra_params", ""))
+            config["act_model_extra_params"] = act_extra
+    except Exception:
+        pass
 
     return CONFIG_FILE, config
 

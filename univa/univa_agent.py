@@ -3,18 +3,28 @@ import json
 import os
 import re
 import traceback
+from pathlib import Path
+from dotenv import load_dotenv
 
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import logging
 
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
-from agno.models.anthropic import Claude
 from agno.tools.mcp import MCPTools, MultiMCPTools
 from agno.db.sqlite import SqliteDb
 
+def _init_env():
+    base = Path(__file__).resolve().parents[1]
+    env_file = base / ".env"
+    if not env_file.exists():
+        raise RuntimeError("Config missing: please copy univa/.env.example to univa/.env and fill your keys.")
+    load_dotenv(dotenv_path=str(env_file), override=False)
+
+_init_env()
+
 from univa.config.config import config
+from univa.utils.model_factory import create_model
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,13 +79,22 @@ class PlanAgent:
         
         full_instructions = f"{plan_prompt}\n"
         
-        # Get model configuration from config
-        plan_model_id = config.get('plan_model_id', 'claude-sonnet-4-5-20250929')
+        # Get model configuration from config / .env
+        plan_model_provider = config.get('plan_model_provider', 'openai')
+        plan_model_id = config.get('plan_model_id', 'gpt-5-2025-08-07')
         plan_model_api_key = config.get('plan_model_api_key', '')
+        plan_model_base_url = config.get('plan_model_base_url', '')
+        plan_model_extra_params = config.get('plan_model_extra_params', '')
         
         self.agent = Agent(
             name="Univideo Plan Agent",
-            model=OpenAIChat(id=plan_model_id, api_key=plan_model_api_key),
+            model=create_model(
+                provider=plan_model_provider,
+                model_id=plan_model_id,
+                api_key=plan_model_api_key,
+                base_url=plan_model_base_url or None,
+                extra_params=plan_model_extra_params,
+            ),
             instructions=full_instructions,
             db=plan_db,
             add_history_to_context=True,
@@ -162,13 +181,22 @@ class ActAgent:
     def __init__(self, mcp_tools: MultiMCPTools, act_db=None):
         self.mcp_tools = mcp_tools
         
-        # Get model configuration from config
-        act_model_id = config.get('act_model_id', 'gpt-5-mini-2025-08-07')
+        # Get model configuration from config / .env
+        act_model_provider = config.get('act_model_provider', 'openai')
+        act_model_id = config.get('act_model_id', 'gpt-5-2025-08-07')
         act_model_api_key = config.get('act_model_api_key', '')
+        act_model_base_url = config.get('act_model_base_url', '')
+        act_model_extra_params = config.get('act_model_extra_params', '')
         
         self.agent = Agent(
             name="Univideo Act Agent",
-            model=OpenAIChat(id=act_model_id, api_key=act_model_api_key),
+            model=create_model(
+                provider=act_model_provider,
+                model_id=act_model_id,
+                api_key=act_model_api_key,
+                base_url=act_model_base_url or None,
+                extra_params=act_model_extra_params,
+            ),
             tools=[mcp_tools],
             # instructions=act_prompt,
             instructions="""

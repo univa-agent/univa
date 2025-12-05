@@ -72,16 +72,21 @@ cd univa
 #### 2. Install Python Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements_simple.txt
 ```
 
-Or using the project configuration:
+And using the project configuration:
 
 ```bash
 pip install -e .
 ```
+###  Configure LLM API
+cp .env.example .env
+
+Select the  PROVIDER and add the corresponding API.
 
 #### 3. Configure the System
+ 
 Edit the configuration file to set your API keys and preferences:
 
 ```yaml
@@ -100,6 +105,7 @@ mcp_servers_config = "/path/to/your/univa/config/mcp_configs.json"
 auth_enabled = true
 admin_access_code = "your-admin-code"
 ```
+
 
 #### 4. Configure MCP Servers
 
